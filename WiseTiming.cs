@@ -4,7 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+
+#if USE_UNITY
 using UnityEngine;
+#endif
+
 namespace DevLocker.GFrame.Timing
 {
 	/// <summary>
@@ -27,7 +31,7 @@ namespace DevLocker.GFrame.Timing
 		/// this is a place to put your results in. Use it in any way you want.
 		///
 		/// Example:
-		///		myTiming.CurrentCoroutine.ResultData = someData;
+		///		WiseTiming.CurrentCoroutine.ResultData = someData;
 		/// </summary>
 		object ResultData { get; set; }
 
@@ -58,6 +62,8 @@ namespace DevLocker.GFrame.Timing
 	/// </summary>
 	public class WiseTiming
 	{
+		#region Helper Type Declarations
+
 		/// <summary>
 		/// What should happen to currently active coroutine if the source is <see cref="Behaviour"/> and
 		/// it is inactive (<see cref="Behaviour.isActiveAndEnabled"/>).
@@ -112,6 +118,36 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		/// <summary>
+		/// Same as <see cref="UnityEngine.CustomYieldInstruction"/>, but can be used without UnityEngine dependencies.
+		/// </summary>
+		public abstract class WiseYieldInstruction : IEnumerator
+		{
+			/// <summary>
+			/// Indicates if coroutine should be kept suspended.
+			/// </summary>
+			public abstract bool keepWaiting { get; }
+
+			public object Current => null;
+
+			public bool MoveNext()
+			{
+				return keepWaiting;
+			}
+
+			public virtual void Reset()
+			{
+			}
+		}
+
+		#endregion
+
+		/// <summary>
+		/// Check if currently there is a timing being updated.
+		/// Use this to avoid exceptions with <see cref="CurrentTiming"/> or <see cref="DeltaTime"/>
+		/// </summary>
+		public static bool CurrentTimingAvailable => m_CurrentTiming != null;
+
+		/// <summary>
 		/// Current <see cref="WiseTiming"/> being updated. Use this in the coroutine code.
 		/// </summary>
 		public static WiseTiming CurrentTiming {
@@ -163,6 +199,11 @@ namespace DevLocker.GFrame.Timing
 		/// Time passed with updates since this instance was created.
 		/// </summary>
 		public float Time { get; private set; }
+
+		/// <summary>
+		/// DeltaTime from the last <see cref="UpdateCoroutines(float)"/> or the currently happening one.
+		/// </summary>
+		public float LastOrCurrentDeltaTime { get; private set; }
 
 		/// <summary>
 		/// How many times update executed.
@@ -223,11 +264,15 @@ namespace DevLocker.GFrame.Timing
 
 			public bool WaitForEndOfFrame = false;
 
+#if USE_UNITY
 			public CustomYieldInstruction CustomYieldInstruction;
 			public UnityEngine.Networking.UnityWebRequest WebRequest;
 			public AsyncOperation AsyncOperation;
+#endif
+
 			public Task Task;
 			public WiseCoroutine WaitedOnCoroutine;
+			public WiseYieldInstruction WiseYieldInstruction;
 
 			public ExceptionHandlingDelegate ExceptionHandling { get; set; }
 
@@ -243,7 +288,9 @@ namespace DevLocker.GFrame.Timing
 
 		private static WiseTiming m_CurrentTiming;
 
+#if USE_UNITY
 		private System.Reflection.FieldInfo m_WaitForSeconds_Seconds_FieldInfo = typeof(WaitForSeconds).GetField("m_Seconds", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+#endif
 
 		#endregion
 
@@ -361,7 +408,7 @@ namespace DevLocker.GFrame.Timing
 
 				m_CurrentTiming = this;
 
-				m_CurrentDeltaTime = deltaTime;
+				LastOrCurrentDeltaTime = m_CurrentDeltaTime = deltaTime;
 
 				PreUpdate?.Invoke();
 
@@ -425,6 +472,7 @@ namespace DevLocker.GFrame.Timing
 				return false;
 			}
 
+#if USE_UNITY
 			if (coroutine.Source is Behaviour behaviourSource && InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting && !behaviourSource.isActiveAndEnabled) {
 
 				switch (InactiveBehaviour) {
@@ -437,6 +485,7 @@ namespace DevLocker.GFrame.Timing
 					default: throw new NotSupportedException($"Not supported behaviour {InactiveBehaviour}");
 				}
 			}
+#endif
 
 
 			while (coroutine.Iterators.Count > 0) {
@@ -449,6 +498,14 @@ namespace DevLocker.GFrame.Timing
 					// Waiting
 					//
 
+					if (coroutine.WiseYieldInstruction != null) {
+						if (coroutine.WiseYieldInstruction.keepWaiting)
+							return true;
+
+						coroutine.WiseYieldInstruction = null;
+					}
+
+#if USE_UNITY
 					if (coroutine.CustomYieldInstruction != null) {
 						if (coroutine.CustomYieldInstruction.keepWaiting)
 							return true;
@@ -469,6 +526,7 @@ namespace DevLocker.GFrame.Timing
 
 						coroutine.AsyncOperation = null;
 					}
+#endif
 
 					if (coroutine.Task != null) {
 						if (!coroutine.Task.IsCompleted)
@@ -517,6 +575,15 @@ namespace DevLocker.GFrame.Timing
 						continue;
 					}
 
+					if (current is WiseYieldInstruction wiseYieldInstruction) {
+						if (!wiseYieldInstruction.keepWaiting)
+							continue;
+
+						coroutine.WiseYieldInstruction = wiseYieldInstruction;
+						return true;
+					}
+
+#if USE_UNITY
 					if (current is WaitForSeconds waitForSeconds) {
 						coroutine.NextUpdateTime = Time + (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
 						return true;
@@ -526,6 +593,7 @@ namespace DevLocker.GFrame.Timing
 						coroutine.WaitForEndOfFrame = true;
 						return true;
 					}
+
 
 
 					if (current is CustomYieldInstruction customYieldInstruction) {
@@ -551,6 +619,7 @@ namespace DevLocker.GFrame.Timing
 						coroutine.AsyncOperation = asyncOperation;
 						return true;
 					}
+#endif
 
 					if (current is Task task) {
 						if (task.IsCompleted)
