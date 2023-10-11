@@ -1,10 +1,10 @@
 {
-    "name": "DevLocker.GFrame.WiseTiming.Tests",
+    "name": "DevLocker.Timing.WiseTiming.Tests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "DevLocker.GFrame.WiseTiming"
+        "DevLocker.Timing.WiseTiming"
     ],
     "includePlatforms": [
         "Editor"

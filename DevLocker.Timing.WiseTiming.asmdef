@@ -1,5 +1,5 @@
 {
-    "name": "DevLocker.GFrame.WiseTiming",
+    "name": "DevLocker.Timing.WiseTiming",
     "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
