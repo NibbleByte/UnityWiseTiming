@@ -397,6 +397,76 @@ namespace DevLocker.GFrame.Timing.Tests
 
 		#endregion
 
+		#region PausedCoroutine
+
+		[Test]
+		public void PausedCoroutine()
+		{
+			var coroutine = m_Timing.StartCoroutine(PausedCoroutineCrt(), this);
+
+			coroutine.IsPaused = true;
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1, m_Timing.UpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(0, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			coroutine.IsPaused = false;
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(1, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3, m_Timing.UpdatesCount);
+			Assert.AreEqual(0, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(2, m_Progress);
+			Assert.IsFalse(m_Timing.IsCoroutineAlive(coroutine));
+		}
+
+		private IEnumerator PausedCoroutineCrt()
+		{
+			Assert.AreEqual(1, m_Timing.UpdatesCount);
+			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			m_Progress++;
+
+			yield return null;
+
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			m_Progress++;
+		}
+
+		#endregion
+
 		#region NestedCoroutine
 
 		[Test]
@@ -635,7 +705,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		[Test]
 		public void Exceptions_PropagateException()
 		{
-			var coroutine = m_Timing.StartCoroutine(Exceptions_SharedTestCrt(), this, (ex) => {
+			var coroutine = m_Timing.StartCoroutine(Exceptions_SharedTestCrt(), this, WiseTiming.SourceInactiveBehaviour.StopCoroutine, (ex) => {
 				Assert.AreEqual("Test", ex.Message);
 				return WiseTiming.ExceptionHandlingAction.PropagateException;
 			});
@@ -688,7 +758,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		[Test]
 		public void Exceptions_CatchAndStopCoroutineHandler()
 		{
-			var coroutine = m_Timing.StartCoroutine(Exceptions_SharedTestCrt(), this, (ex) => {
+			var coroutine = m_Timing.StartCoroutine(Exceptions_SharedTestCrt(), this, WiseTiming.SourceInactiveBehaviour.StopCoroutine, (ex) => {
 				Assert.AreEqual("Test", ex.Message);
 				return WiseTiming.ExceptionHandlingAction.CatchAndStopCoroutine;
 			});
@@ -727,7 +797,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		[Test]
 		public void Exceptions_CatchPopAndResumeCoroutine()
 		{
-			var coroutine = m_Timing.StartCoroutine(Exceptions_CatchPopAndResumeCoroutineCrt(), this, (ex) => {
+			var coroutine = m_Timing.StartCoroutine(Exceptions_CatchPopAndResumeCoroutineCrt(), this, WiseTiming.SourceInactiveBehaviour.StopCoroutine, (ex) => {
 				Assert.AreEqual("Test", ex.Message);
 				return WiseTiming.ExceptionHandlingAction.CatchPopAndResumeCoroutine;
 			});

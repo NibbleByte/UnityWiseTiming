@@ -22,9 +22,20 @@ namespace DevLocker.GFrame.Timing
 		object Source { get; }
 
 		/// <summary>
+		/// What should happen to currently active coroutine if the source is <see cref="Behaviour"/> and
+		/// it is inactive (<see cref="Behaviour.isActiveAndEnabled"/>).
+		/// </summary>
+		WiseTiming.SourceInactiveBehaviour InactiveBehaviour { get; set; }
+
+		/// <summary>
 		/// Next scheduled time for update.
 		/// </summary>
 		float NextUpdateTime { get; }
+
+		/// <summary>
+		/// Use this field to pause a coroutine (prevent it from updating).
+		/// </summary>
+		bool IsPaused { get; set; }
 
 		/// <summary>
 		/// Since you can't return values with coroutines,
@@ -216,13 +227,6 @@ namespace DevLocker.GFrame.Timing
 		public bool DebugInfo_RecordCallstack { get; set; }
 
 		/// <summary>
-		/// What should happen to currently active coroutine if the source is <see cref="Behaviour"/> and
-		/// it is inactive (<see cref="Behaviour.isActiveAndEnabled"/>).
-		/// </summary>
-		public SourceInactiveBehaviour InactiveBehaviour = SourceInactiveBehaviour.StopCoroutine;
-
-
-		/// <summary>
 		/// Get notified if exception happens while any coroutine is executing.
 		/// To control the outcome of the exception, use <see cref="WiseCoroutine.ExceptionHandling"/>
 		/// </summary>
@@ -256,9 +260,13 @@ namespace DevLocker.GFrame.Timing
 		{
 			public object Source { get; set; }
 
+			public SourceInactiveBehaviour InactiveBehaviour { get; set; } = SourceInactiveBehaviour.StopCoroutine;
+
 			public Stack<IEnumerator> Iterators = new Stack<IEnumerator>();
 
 			public float NextUpdateTime { get; set; } = 0f;
+
+			public bool IsPaused { get; set; } = false;
 
 			public object ResultData { get; set; }
 
@@ -299,13 +307,14 @@ namespace DevLocker.GFrame.Timing
 		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(float)"/>.
 		/// </summary>
 		/// <param name="source">Source object is used for tracking, debugging and also automatically stops the coroutine if the source dies(if it is <see cref = "UnityEngine.Object" />).</param>
-		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, ExceptionHandlingDelegate exceptionHandler = null)
+		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, SourceInactiveBehaviour inactiveBehaviour = SourceInactiveBehaviour.StopCoroutine, ExceptionHandlingDelegate exceptionHandler = null)
 		{
 			if (routine == null)
 				throw new NullReferenceException("routine is null");
 
 			var coroutine = new WiseCoroutineImpl() {
 				Source = source,
+				InactiveBehaviour = inactiveBehaviour,
 				ExceptionHandling = exceptionHandler,
 			};
 
@@ -473,19 +482,22 @@ namespace DevLocker.GFrame.Timing
 			}
 
 #if USE_UNITY
-			if (coroutine.Source is Behaviour behaviourSource && InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting && !behaviourSource.isActiveAndEnabled) {
+			if (coroutine.Source is Behaviour behaviourSource && coroutine.InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting && !behaviourSource.isActiveAndEnabled) {
 
-				switch (InactiveBehaviour) {
+				switch (coroutine.InactiveBehaviour) {
 					case SourceInactiveBehaviour.StopCoroutine:
 						return false;
 
 					case SourceInactiveBehaviour.SkipAndResumeWhenActive:
 						return true;
 
-					default: throw new NotSupportedException($"Not supported behaviour {InactiveBehaviour}");
+					default: throw new NotSupportedException($"Not supported behaviour {coroutine.InactiveBehaviour}");
 				}
 			}
 #endif
+
+			if (coroutine.IsPaused)
+				return true;
 
 
 			while (coroutine.Iterators.Count > 0) {
