@@ -223,6 +223,7 @@ namespace DevLocker.GFrame.Timing
 
 		/// <summary>
 		/// If set to true, coroutines will record the initial callstack they were created from.
+		/// NOTE: this is a slow operation so avoid using it in release.
 		/// </summary>
 		public bool DebugInfo_RecordCallstack { get; set; }
 
@@ -482,16 +483,23 @@ namespace DevLocker.GFrame.Timing
 			}
 
 #if USE_UNITY
-			if (coroutine.Source is Behaviour behaviourSource && coroutine.InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting && !behaviourSource.isActiveAndEnabled) {
+			if (coroutine.InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting) {
+				bool sourceIsInactive =
+					(coroutine.Source is Behaviour behaviourSource && !behaviourSource.isActiveAndEnabled) ||
+					(coroutine.Source is GameObject gameObjectSource && !gameObjectSource.activeInHierarchy)
+				;
 
-				switch (coroutine.InactiveBehaviour) {
-					case SourceInactiveBehaviour.StopCoroutine:
-						return false;
+				if (sourceIsInactive) {
 
-					case SourceInactiveBehaviour.SkipAndResumeWhenActive:
-						return true;
+					switch (coroutine.InactiveBehaviour) {
+						case SourceInactiveBehaviour.StopCoroutine:
+							return false;
 
-					default: throw new NotSupportedException($"Not supported behaviour {coroutine.InactiveBehaviour}");
+						case SourceInactiveBehaviour.SkipAndResumeWhenActive:
+							return true;
+
+						default: throw new NotSupportedException($"Not supported behaviour {coroutine.InactiveBehaviour}");
+					}
 				}
 			}
 #endif
