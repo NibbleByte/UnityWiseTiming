@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 namespace DevLocker.GFrame.Timing
 {
 	/// <summary>
@@ -124,8 +123,8 @@ namespace DevLocker.GFrame.Timing
 		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(float)"/>.
 		/// </summary>
 		/// <param name="source">Source object is used for tracking, debugging and also automatically stops the coroutine if the source dies(if it is <see cref = "UnityEngine.Object" />).</param>
-		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, WiseTiming.ExceptionHandlingDelegate exceptionHandler = null)
-			=> Timing.StartCoroutine(routine, source, exceptionHandler);
+		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, WiseTiming.SourceInactiveBehaviour inactiveBehaviour = WiseTiming.SourceInactiveBehaviour.StopCoroutine, WiseTiming.ExceptionHandlingDelegate exceptionHandler = null)
+			=> Timing.StartCoroutine(routine, source, inactiveBehaviour, exceptionHandler);
 
 		/// <summary>
 		/// Check if coroutine is still running.
