@@ -1,4 +1,4 @@
-<img src="./Docs/Logo.png" width="128" align="right">
+<img src="../../../../Docs/Logo.png" width="128" align="right">
 
 # Unity WiseTiming
 Custom coroutines that you can control and update yourself with your own deltaTime. Can have multiple timings ticking with different speeds (deltaTimes).
