@@ -32,7 +32,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			Assert.AreEqual(this, coroutine.Source);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(0, m_Timing.Time);
+			Assert.AreEqual(0, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
 			// Coroutine is alive until actual update happens, since we're not in an actual update.
@@ -45,7 +45,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -59,7 +59,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -70,7 +70,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator EmptyCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -93,7 +93,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -106,7 +106,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -117,7 +117,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator SkipFrameCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -125,7 +125,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return null;
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -148,7 +148,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(3, m_Timing.CoroutinesCount);
 
@@ -163,7 +163,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -188,7 +188,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -201,7 +201,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -214,7 +214,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
 			Assert.AreEqual(3, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -227,7 +227,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(4f, m_Timing.Time);
+			Assert.AreEqual(4f, m_Timing.TimeElapsed);
 			Assert.AreEqual(m_Timing.UpdatesCount, 4);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -238,7 +238,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator WaitForSecondsCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -246,7 +246,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForSeconds(0.5f);
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -254,7 +254,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForSeconds(1.5f);
 
 			Assert.AreEqual(3, m_Timing.UpdatesCount);
-			Assert.AreEqual(4f, m_Timing.Time);
+			Assert.AreEqual(4f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -275,7 +275,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -288,7 +288,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -301,7 +301,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
 			Assert.AreEqual(3, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -312,7 +312,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator WaitForZeroSecondsCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -320,7 +320,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForSeconds(0.0f);
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -328,7 +328,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForSeconds(0.0f);
 
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
-			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -349,7 +349,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -362,7 +362,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -373,7 +373,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator WaitForEndOfFrameCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -381,7 +381,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForEndOfFrame();
 
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -389,7 +389,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return new WaitForEndOfFrame();
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -412,7 +412,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -427,7 +427,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -440,7 +440,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
 			Assert.AreEqual(3, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -451,7 +451,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator PausedCoroutineCrt()
 		{
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -459,7 +459,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return null;
 
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
-			Assert.AreEqual(3f, m_Timing.Time);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -480,7 +480,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -493,7 +493,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -504,7 +504,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator NestedCoroutineCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -514,7 +514,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return SkipFrameCoroutineCrt();
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -535,7 +535,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -548,7 +548,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -559,7 +559,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator NestedCoroutine2Crt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -569,7 +569,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			yield return NestedCoroutineCrt();
 
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -590,7 +590,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -603,7 +603,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.StopCoroutine(coroutine);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -626,7 +626,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(1, m_Timing.CoroutinesCount);
 
@@ -639,7 +639,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.StopCoroutineBySource(this);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -662,7 +662,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			Assert.That(() => m_Timing.UpdateCoroutines(1f), Throws.TypeOf<NotSupportedException>());
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -675,7 +675,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -686,7 +686,7 @@ namespace DevLocker.GFrame.Timing.Tests
 		private IEnumerator Exceptions_NotSupportedIteratorExceptionCrt()
 		{
 			Assert.AreEqual(0, m_Timing.UpdatesCount);
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1f, WiseTiming.DeltaTime);
 
 			m_Progress++;
@@ -716,7 +716,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			Assert.That(() => m_Timing.UpdateCoroutines(1f), Throws.TypeOf<InvalidOperationException>());
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -729,7 +729,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -769,7 +769,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -782,7 +782,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -808,7 +808,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(1f, m_Timing.Time);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
 			Assert.AreEqual(1, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
@@ -821,7 +821,7 @@ namespace DevLocker.GFrame.Timing.Tests
 			m_Timing.UpdateCoroutines(1f);
 
 			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
-			Assert.AreEqual(2f, m_Timing.Time);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
 			Assert.AreEqual(2, m_Timing.UpdatesCount);
 			Assert.AreEqual(0, m_Timing.CoroutinesCount);
 
