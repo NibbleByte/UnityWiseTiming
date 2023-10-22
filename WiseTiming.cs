@@ -183,6 +183,18 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		/// <summary>
+		/// Current time passed with updates since this timing instance was created. Use this in the coroutine code, instead of Unity <see cref="Time.time"/>.
+		/// </summary>
+		public static float Time {
+			get {
+				if (m_CurrentTiming == null)
+					throw new InvalidOperationException($"Accessing {nameof(Time)} outside of {nameof(WiseTiming)} coroutine update is not allowed.");
+
+				return m_CurrentTiming.TimeElapsed;
+			}
+		}
+
+		/// <summary>
 		/// Currently executed coroutine.
 		/// </summary>
 		public static WiseCoroutine CurrentCoroutine
@@ -209,7 +221,7 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Time passed with updates since this instance was created.
 		/// </summary>
-		public float Time { get; private set; }
+		public float TimeElapsed { get; private set; }
 
 		/// <summary>
 		/// DeltaTime from the last <see cref="UpdateCoroutines(float)"/> or the currently happening one.
@@ -320,7 +332,7 @@ namespace DevLocker.GFrame.Timing
 			};
 
 			coroutine.DebugInfo = new DebugInfo {
-				CreatedTime = Time,
+				CreatedTime = TimeElapsed,
 				CreatedUnityTime = UnityEngine.Time.time,
 				CreatedUnityFrame = UnityEngine.Time.frameCount,
 				StackTrace = DebugInfo_RecordCallstack ? new StackTrace() : null,
@@ -422,7 +434,7 @@ namespace DevLocker.GFrame.Timing
 
 				PreUpdate?.Invoke();
 
-				Time += deltaTime;
+				TimeElapsed += deltaTime;
 
 				var toRemoveCoroutines = new List<WiseCoroutineImpl>();
 
@@ -564,7 +576,7 @@ namespace DevLocker.GFrame.Timing
 						coroutine.WaitedOnCoroutine = null;
 					}
 
-					if (coroutine.NextUpdateTime > Time)
+					if (coroutine.NextUpdateTime > TimeElapsed)
 						return true;
 
 
@@ -604,7 +616,7 @@ namespace DevLocker.GFrame.Timing
 
 #if USE_UNITY
 					if (current is WaitForSeconds waitForSeconds) {
-						coroutine.NextUpdateTime = Time + (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
+						coroutine.NextUpdateTime = TimeElapsed + (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
 						return true;
 					}
 
