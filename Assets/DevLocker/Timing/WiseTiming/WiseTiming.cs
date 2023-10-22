@@ -574,7 +574,6 @@ namespace DevLocker.GFrame.Timing
 
 					IEnumerator iterator = coroutine.Iterators.Peek();
 
-					// TODO: Exception checking. Option to continue or propagate exception.
 					if (!iterator.MoveNext()) {
 						coroutine.Iterators.Pop();
 						continue;
