@@ -71,8 +71,11 @@ namespace DevLocker.GFrame.Timing
 	///
 	/// Source object is used for tracking, debugging and also automatically stops the coroutine if the source dies (if it is <see cref="UnityEngine.Object"/>).
 	/// </summary>
+	[DebuggerNonUserCode]
 	public class WiseTiming
 	{
+		// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
 		#region Helper Type Declarations
 
 		/// <summary>
@@ -115,6 +118,7 @@ namespace DevLocker.GFrame.Timing
 		public delegate void CoroutineEventHandler(WiseCoroutine coroutine);
 		public delegate void UpdateEventHandler();
 
+		[DebuggerNonUserCode]
 		public struct DebugInfo
 		{
 			public float CreatedTime;
@@ -131,6 +135,7 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Same as <see cref="UnityEngine.CustomYieldInstruction"/>, but can be used without UnityEngine dependencies.
 		/// </summary>
+		[DebuggerNonUserCode]
 		public abstract class WiseYieldInstruction : IEnumerator
 		{
 			/// <summary>
@@ -269,13 +274,14 @@ namespace DevLocker.GFrame.Timing
 
 		#region Implementation Details
 
+		[DebuggerNonUserCode]
 		private class WiseCoroutineImpl : WiseCoroutine
 		{
 			public object Source { get; set; }
 
 			public SourceInactiveBehaviour InactiveBehaviour { get; set; } = SourceInactiveBehaviour.StopCoroutine;
 
-			public Stack<IEnumerator> Iterators = new Stack<IEnumerator>();
+			public readonly Stack<IEnumerator> Iterators = new Stack<IEnumerator>();
 
 			public float NextUpdateTime { get; set; } = 0f;
 
@@ -322,6 +328,8 @@ namespace DevLocker.GFrame.Timing
 		/// <param name="source">Source object is used for tracking, debugging and also automatically stops the coroutine if the source dies(if it is <see cref = "UnityEngine.Object" />).</param>
 		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, SourceInactiveBehaviour inactiveBehaviour = SourceInactiveBehaviour.StopCoroutine, ExceptionHandlingDelegate exceptionHandler = null)
 		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
 			if (routine == null)
 				throw new NullReferenceException("routine is null");
 
@@ -369,6 +377,8 @@ namespace DevLocker.GFrame.Timing
 		/// </summary>
 		public bool StopCoroutine(WiseCoroutine coroutine)
 		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
 			bool success = m_Coroutines.Remove((WiseCoroutineImpl)coroutine);
 
 			CoroutineStopped?.Invoke(coroutine);
@@ -379,9 +389,11 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Stop all coroutines starte from provided source object.
 		/// </summary>
-		public void StopCoroutineBySource(object source) {
+		public void StopCoroutineBySource(object source)
+		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
-			for(int i = 0; i < m_Coroutines.Count; i++) {
+			for (int i = 0; i < m_Coroutines.Count; i++) {
 				WiseCoroutine coroutine = m_Coroutines[i];
 
 				if (coroutine.Source == source) {
@@ -396,9 +408,11 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Stop all coroutines.
 		/// </summary>
-		public void StopAllCoroutines() {
+		public void StopAllCoroutines()
+		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
-			while(m_Coroutines.Count > 0) {
+			while (m_Coroutines.Count > 0) {
 				WiseCoroutine coroutine = m_Coroutines[0];
 
 				// Keep the order. Just in case.
@@ -423,6 +437,8 @@ namespace DevLocker.GFrame.Timing
 		/// </summary>
 		public void UpdateCoroutines(float deltaTime)
 		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
 			if (m_CurrentTiming != null)
 				throw new InvalidOperationException($"Calling {nameof(WiseTiming)} update while another one is currently running is not allowed.");
 
@@ -489,6 +505,8 @@ namespace DevLocker.GFrame.Timing
 
 		private bool UpdateCoroutine(WiseCoroutineImpl coroutine)
 		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
 			// Check if source was destroyed and kill the coroutine if true.
 			if (coroutine.Source is UnityEngine.Object unitySource && unitySource == null) {
 				return false;
