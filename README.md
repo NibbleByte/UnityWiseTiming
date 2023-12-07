@@ -78,7 +78,7 @@ There are several ways to debug what coroutines are running at the moment in wha
 `WiseCoroutine.ExceptionHandling` gives you control over what should happen on exception while updating the coroutine.
 
 ## Coroutines vs Async/Await Tasks
-Altough coroutines and [tasks](https://medium.com/@sonusprocks/async-await-in-c-unity-explained-in-easy-words-571ebb6a9369) are similar, they have some key differences that may affect your code workflow. Here is what you need to know before deciding what to use:
+Although coroutines and [tasks](https://medium.com/@sonusprocks/async-await-in-c-unity-explained-in-easy-words-571ebb6a9369) are similar, they have some key differences that may affect your code workflow. Here is a [good talk](https://www.youtube.com/watch?v=7eKi6NKri6I) on this topic. This is what you need to know before deciding what to use:
 * Both run on the main thread in Unity.
 * Both can wait on another call to finish before resuming (`yield` or `await`).
 * Coroutines are tied to the MonoBehaviour life-time. If behaviour is disabled or destroyed, the coroutine stops. Tasks on the other hand will continue, no matter who started or awaited them - you must manually stop them on switching scenes or destroying objects. This includes stopping play mode in the editor (tasks can leak into edit mode, if assembly doesn't reload).
