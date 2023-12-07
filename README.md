@@ -4,6 +4,8 @@
 Custom coroutines that you can control and update yourself with your own deltaTime. Can have multiple timings ticking with different speeds (deltaTimes).
 Compatible with Unity coroutines. Can also be used without Unity.
 
+[![openupm](https://img.shields.io/npm/v/devlocker.timing.wisetiming?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/devlocker.timing.wisetiming/)
+
 ## What is this for?
 Unity [coroutines](https://docs.unity3d.com/Manual/Coroutines.html) and [Time.deltaTime](https://docs.unity3d.com/ScriptReference/Time-deltaTime.html) are the main ways to simulate time in the engine. But they are tied to the Unity life-cycle and frame updates and you have no control over it:
 * `Time.deltaTime` is updated once every frame by the system. You can't feed your own deltaTime values.
