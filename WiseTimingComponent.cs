@@ -1,4 +1,5 @@
 #if USE_UNITY
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -118,6 +119,12 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		#region Wrapper Methods
+
+		[Obsolete("Don't call Unity built-in StartCoroutine. Provide source object instead to call the WiseTiming overload.", true)]
+		public new Coroutine StartCoroutine(IEnumerator routine)
+		{
+			throw new InvalidOperationException($"\"{name}\": Don't call Unity built-in StartCoroutine. Provide source object instead to call the WiseTiming overload.");
+		}
 
 		/// <summary>
 		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(float)"/>.
