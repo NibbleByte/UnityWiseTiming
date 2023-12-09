@@ -4,6 +4,8 @@
 Custom coroutines that you can control and update yourself with your own deltaTime. Can have multiple timings ticking with different speeds (deltaTimes).
 Compatible with Unity coroutines. Can also be used without Unity.
 
+[Asset Store](https://u3d.as/3ciG) | [GitHub](https://github.com/NibbleByte/UnityWiseTiming)
+
 [![openupm](https://img.shields.io/npm/v/devlocker.timing.wisetiming?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/devlocker.timing.wisetiming/)
 
 ## What is this for?
