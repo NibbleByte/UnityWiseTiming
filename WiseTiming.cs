@@ -28,9 +28,14 @@ namespace DevLocker.GFrame.Timing
 		WiseTiming.SourceInactiveBehaviour InactiveBehaviour { get; set; }
 
 		/// <summary>
-		/// Next scheduled time for update.
+		/// Next scheduled time in seconds for update.
 		/// </summary>
 		float NextUpdateTime { get; }
+
+		/// <summary>
+		/// Next scheduled time in milliseconds for update.
+		/// </summary>
+		long NextUpdateTimeInMilliseconds { get; }
 
 		/// <summary>
 		/// Use this field to pause a coroutine (prevent it from updating).
@@ -63,6 +68,19 @@ namespace DevLocker.GFrame.Timing
 		/// Use together with the <see cref="DebugInfo"/> and <see cref="WiseTiming.DebugInfo_RecordCallstack"/>.
 		/// </summary>
 		List<string> GetDebugStackNames();
+	}
+
+	/// <summary>
+	/// Suspends the coroutine execution for the given amount of milliseconds.
+	/// </summary>
+	public sealed class WaitForMilliseconds
+	{
+		public readonly long Milliseconds;
+
+		public WaitForMilliseconds(long miliseconds)
+		{
+			Milliseconds = miliseconds;
+		}
 	}
 
 	/// <summary>
@@ -121,7 +139,7 @@ namespace DevLocker.GFrame.Timing
 		[DebuggerNonUserCode]
 		public struct DebugInfo
 		{
-			public float CreatedTime;
+			public long CreatedTimeInMilliseconds;
 			public float CreatedUnityTime;
 			public int CreatedUnityFrame;
 
@@ -176,9 +194,21 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		/// <summary>
-		/// Current delta time. Use this in the coroutine code, instead of Unity <see cref="Time.deltaTime"/>.
+		/// Current delta time seconds. Use this in the coroutine code, instead of Unity <see cref="Time.deltaTime"/>.
 		/// </summary>
 		public static float DeltaTime {
+			get {
+				if (m_CurrentTiming == null)
+					throw new InvalidOperationException($"Accessing {nameof(DeltaTime)} outside of {nameof(WiseTiming)} coroutine update is not allowed.");
+
+				return m_CurrentTiming.m_CurrentDeltaTime / 1000f;
+			}
+		}
+
+		/// <summary>
+		/// Current delta time in milliseconds. Use this in the coroutine code, instead of Unity <see cref="Time.deltaTime"/>.
+		/// </summary>
+		public static long DeltaTimeInMilliseconds {
 			get {
 				if (m_CurrentTiming == null)
 					throw new InvalidOperationException($"Accessing {nameof(DeltaTime)} outside of {nameof(WiseTiming)} coroutine update is not allowed.");
@@ -188,7 +218,7 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		/// <summary>
-		/// Current time passed with updates since this timing instance was created. Use this in the coroutine code, instead of Unity <see cref="Time.time"/>.
+		/// Current time in seconds passed with updates since this timing instance was created. Use this in the coroutine code, instead of Unity <see cref="Time.time"/>.
 		/// </summary>
 		public static float Time {
 			get {
@@ -196,6 +226,18 @@ namespace DevLocker.GFrame.Timing
 					throw new InvalidOperationException($"Accessing {nameof(Time)} outside of {nameof(WiseTiming)} coroutine update is not allowed.");
 
 				return m_CurrentTiming.TimeElapsed;
+			}
+		}
+
+		/// <summary>
+		/// Current time in milliseconds passed with updates since this timing instance was created. Use this in the coroutine code, instead of Unity <see cref="Time.time"/>.
+		/// </summary>
+		public static long TimeInMilliseconds {
+			get {
+				if (m_CurrentTiming == null)
+					throw new InvalidOperationException($"Accessing {nameof(Time)} outside of {nameof(WiseTiming)} coroutine update is not allowed.");
+
+				return m_CurrentTiming.TimeElapsedInMilliseconds;
 			}
 		}
 
@@ -224,19 +266,29 @@ namespace DevLocker.GFrame.Timing
 		public int CoroutinesCount => m_Coroutines.Count;
 
 		/// <summary>
-		/// Time passed with updates since this instance was created.
+		/// Time in seconds passed with updates since this instance was created.
 		/// </summary>
-		public float TimeElapsed { get; private set; }
+		public float TimeElapsed => TimeElapsedInMilliseconds / 1000f;
 
 		/// <summary>
-		/// DeltaTime from the last <see cref="UpdateCoroutines(float)"/> or the currently happening one.
+		/// Time in milliseconds passed with updates since this instance was created.
 		/// </summary>
-		public float LastOrCurrentDeltaTime { get; private set; }
+		public long TimeElapsedInMilliseconds { get; private set; }
+
+		/// <summary>
+		/// DeltaTime in seconds from the last <see cref="UpdateCoroutines(float)"/> or the currently happening one.
+		/// </summary>
+		public float LastOrCurrentDeltaTime => LastOrCurrentDeltaTimeInMilliseconds / 1000f;
+
+		/// <summary>
+		/// DeltaTime in milliseconds from the last <see cref="UpdateCoroutines(long)"/> or the currently happening one.
+		/// </summary>
+		public long LastOrCurrentDeltaTimeInMilliseconds { get; private set; }
 
 		/// <summary>
 		/// How many times update executed.
 		/// </summary>
-		public float UpdatesCount { get; private set; }
+		public int UpdatesCount { get; private set; }
 
 		/// <summary>
 		/// If set to true, coroutines will record the initial callstack they were created from.
@@ -283,7 +335,9 @@ namespace DevLocker.GFrame.Timing
 
 			public readonly Stack<IEnumerator> Iterators = new Stack<IEnumerator>();
 
-			public float NextUpdateTime { get; set; } = 0f;
+			public float NextUpdateTime => NextUpdateTimeInMilliseconds / 1000f;
+
+			public long NextUpdateTimeInMilliseconds { get; set; } = 0;
 
 			public bool IsPaused { get; set; } = false;
 
@@ -314,7 +368,7 @@ namespace DevLocker.GFrame.Timing
 		private List<WiseCoroutineImpl> m_UpdatedCoroutinesCache = new List<WiseCoroutineImpl>();
 		private List<WiseCoroutineImpl> m_RemovedCoroutinesCache = new List<WiseCoroutineImpl>();
 
-		private float m_CurrentDeltaTime;
+		private long m_CurrentDeltaTime;
 		private WiseCoroutineImpl m_CurrentCoroutine;
 
 		private static WiseTiming m_CurrentTiming;
@@ -327,7 +381,7 @@ namespace DevLocker.GFrame.Timing
 
 
 		/// <summary>
-		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(float)"/>.
+		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(long)"/>.
 		/// </summary>
 		/// <param name="source">Source object is used for tracking, debugging and also automatically stops the coroutine if the source dies(if it is <see cref = "UnityEngine.Object" />).</param>
 		public WiseCoroutine StartCoroutine(IEnumerator routine, object source, SourceInactiveBehaviour inactiveBehaviour = SourceInactiveBehaviour.StopCoroutine, ExceptionHandlingDelegate exceptionHandler = null)
@@ -344,7 +398,7 @@ namespace DevLocker.GFrame.Timing
 			};
 
 			coroutine.DebugInfo = new DebugInfo {
-				CreatedTime = TimeElapsed,
+				CreatedTimeInMilliseconds = TimeElapsedInMilliseconds,
 				CreatedUnityTime = UnityEngine.Time.time,
 				CreatedUnityFrame = UnityEngine.Time.frameCount,
 				StackTrace = DebugInfo_RecordCallstack ? new StackTrace() : null,
@@ -436,10 +490,19 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		/// <summary>
-		/// Advance all coroutines with given delta time.
+		/// Advance all coroutines with given delta time in seconds.
 		/// All coroutines should use <see cref="DeltaTime"/> instead of Unity's version.
 		/// </summary>
 		public void UpdateCoroutines(float deltaTime)
+		{
+			UpdateCoroutines((long) (deltaTime * 1000));
+		}
+
+		/// <summary>
+		/// Advance all coroutines with given delta time in milliseconds.
+		/// All coroutines should use <see cref="DeltaTime"/> instead of Unity's version.
+		/// </summary>
+		public void UpdateCoroutines(long deltaTime)
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
@@ -450,11 +513,11 @@ namespace DevLocker.GFrame.Timing
 
 				m_CurrentTiming = this;
 
-				LastOrCurrentDeltaTime = m_CurrentDeltaTime = deltaTime;
+				LastOrCurrentDeltaTimeInMilliseconds = m_CurrentDeltaTime = deltaTime;
 
 				PreUpdate?.Invoke();
 
-				TimeElapsed += deltaTime;
+				TimeElapsedInMilliseconds += deltaTime;
 
 				m_UpdatedCoroutinesCache.Clear();
 				m_UpdatedCoroutinesCache.AddRange(m_Coroutines);
@@ -605,7 +668,7 @@ namespace DevLocker.GFrame.Timing
 						coroutine.WaitedOnCoroutine = null;
 					}
 
-					if (coroutine.NextUpdateTime > TimeElapsed)
+					if (coroutine.NextUpdateTimeInMilliseconds > TimeElapsedInMilliseconds)
 						return true;
 
 
@@ -643,9 +706,15 @@ namespace DevLocker.GFrame.Timing
 						return true;
 					}
 
+					if (current is WaitForMilliseconds waitForMilliseconds) {
+						coroutine.NextUpdateTimeInMilliseconds = TimeElapsedInMilliseconds + waitForMilliseconds.Milliseconds;
+						return true;
+					}
+
 #if USE_UNITY
 					if (current is WaitForSeconds waitForSeconds) {
-						coroutine.NextUpdateTime = TimeElapsed + (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
+						var seconds = (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
+						coroutine.NextUpdateTimeInMilliseconds = TimeElapsedInMilliseconds + (long)(seconds * 1000);
 						return true;
 					}
 
