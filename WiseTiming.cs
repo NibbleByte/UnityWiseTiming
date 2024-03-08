@@ -310,6 +310,10 @@ namespace DevLocker.GFrame.Timing
 
 		private List<WiseCoroutineImpl> m_Coroutines = new List<WiseCoroutineImpl>();
 
+		// Cache to avoid allocating garbage.
+		private List<WiseCoroutineImpl> m_UpdatedCoroutinesCache = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_RemovedCoroutinesCache = new List<WiseCoroutineImpl>();
+
 		private float m_CurrentDeltaTime;
 		private WiseCoroutineImpl m_CurrentCoroutine;
 
@@ -452,17 +456,19 @@ namespace DevLocker.GFrame.Timing
 
 				TimeElapsed += deltaTime;
 
-				var toRemoveCoroutines = new List<WiseCoroutineImpl>();
+				m_UpdatedCoroutinesCache.Clear();
+				m_UpdatedCoroutinesCache.AddRange(m_Coroutines);
+				m_RemovedCoroutinesCache.Clear();
 
 				// Cache coroutines as the list may change during execution.
-				foreach (WiseCoroutineImpl coroutine in m_Coroutines.ToList()) {
+				foreach (WiseCoroutineImpl coroutine in m_UpdatedCoroutinesCache) {
 
 					if (!UpdateCoroutine(coroutine)) {
-						toRemoveCoroutines.Add(coroutine);
+						m_RemovedCoroutinesCache.Add(coroutine);
 					}
 				}
 
-				foreach (WiseCoroutineImpl coroutine in toRemoveCoroutines) {
+				foreach (WiseCoroutineImpl coroutine in m_RemovedCoroutinesCache) {
 					m_Coroutines.Remove(coroutine);
 
 					CoroutineStopped?.Invoke(coroutine);
@@ -472,10 +478,12 @@ namespace DevLocker.GFrame.Timing
 				//
 				// WaitForEndOfFrame
 				//
-				toRemoveCoroutines.Clear();
+				m_UpdatedCoroutinesCache.Clear();
+				m_UpdatedCoroutinesCache.AddRange(m_Coroutines);
+				m_RemovedCoroutinesCache.Clear();
 
 				// Cache coroutines as the list may change during execution.
-				foreach (WiseCoroutineImpl coroutine in m_Coroutines.ToList()) {
+				foreach (WiseCoroutineImpl coroutine in m_UpdatedCoroutinesCache) {
 
 					if (!coroutine.WaitForEndOfFrame)
 						continue;
@@ -483,15 +491,18 @@ namespace DevLocker.GFrame.Timing
 					coroutine.WaitForEndOfFrame = false;
 
 					if (!UpdateCoroutine(coroutine)) {
-						toRemoveCoroutines.Add(coroutine);
+						m_RemovedCoroutinesCache.Add(coroutine);
 					}
 				}
 
-				foreach (WiseCoroutineImpl coroutine in toRemoveCoroutines) {
+				foreach (WiseCoroutineImpl coroutine in m_RemovedCoroutinesCache) {
 					m_Coroutines.Remove(coroutine);
 
 					CoroutineStopped?.Invoke(coroutine);
 				}
+
+				m_UpdatedCoroutinesCache.Clear();
+				m_RemovedCoroutinesCache.Clear();
 
 				PostUpdate?.Invoke();
 
