@@ -173,6 +173,15 @@ namespace DevLocker.GFrame.Timing
 			}
 		}
 
+		/// <summary>
+		/// In case you're not using Unity, but still want the end of frame support,
+		/// use this class instead.
+		/// </summary>
+		public sealed class WaitForEndOfFrame
+		{
+			// Keep empty. Used as marker.
+		}
+
 		#endregion
 
 		/// <summary>
@@ -258,12 +267,12 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Currently active coroutines.
 		/// </summary>
-		public IReadOnlyList<WiseCoroutine> Coroutines => m_Coroutines.AsReadOnly();
+		public IEnumerable<WiseCoroutine> Coroutines => m_NextFrameCoroutines.Concat(m_TimedCoroutines).Concat(m_EndOfFrameCoroutines);
 
 		/// <summary>
 		/// Alive coroutines count, that will be processed the next update.
 		/// </summary>
-		public int CoroutinesCount => m_Coroutines.Count;
+		public int CoroutinesCount => m_NextFrameCoroutines.Count + m_TimedCoroutines.Count + m_EndOfFrameCoroutines.Count;
 
 		/// <summary>
 		/// Time in seconds passed with updates since this instance was created.
@@ -326,6 +335,15 @@ namespace DevLocker.GFrame.Timing
 
 		#region Implementation Details
 
+		private enum ScheduleAction
+		{
+			NextFrame,
+			Timed,
+			EndOfFrame,
+
+			Finished,
+		}
+
 		[DebuggerNonUserCode]
 		private class WiseCoroutineImpl : WiseCoroutine
 		{
@@ -342,8 +360,6 @@ namespace DevLocker.GFrame.Timing
 			public bool IsPaused { get; set; } = false;
 
 			public object ResultData { get; set; }
-
-			public bool WaitForEndOfFrame = false;
 
 #if USE_UNITY
 			public CustomYieldInstruction CustomYieldInstruction;
@@ -362,11 +378,13 @@ namespace DevLocker.GFrame.Timing
 			public List<string> GetDebugStackNames() => Iterators.Select(it => it.ToString()).ToList();
 		}
 
-		private List<WiseCoroutineImpl> m_Coroutines = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_NextFrameCoroutines = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_TimedCoroutines = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_EndOfFrameCoroutines = new List<WiseCoroutineImpl>();
 
 		// Cache to avoid allocating garbage.
 		private List<WiseCoroutineImpl> m_UpdatedCoroutinesCache = new List<WiseCoroutineImpl>();
-		private List<WiseCoroutineImpl> m_RemovedCoroutinesCache = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_TimedCoroutinesCache = new List<WiseCoroutineImpl>();
 
 		private long m_CurrentDeltaTime;
 		private WiseCoroutineImpl m_CurrentCoroutine;
@@ -408,14 +426,15 @@ namespace DevLocker.GFrame.Timing
 
 			if (m_CurrentTiming == this) {
 
-				if (UpdateCoroutine(coroutine)) {
-					m_Coroutines.Add(coroutine);
+				ScheduleAction nextSchedule = UpdateCoroutine(coroutine, ScheduleAction.NextFrame);
 
+				if (nextSchedule != ScheduleAction.Finished) {
+					ScheduleCoroutine(coroutine, nextSchedule);
 					CoroutineStarted?.Invoke(coroutine);
 				}
 
 			} else {
-				m_Coroutines.Add(coroutine);
+				m_NextFrameCoroutines.Add(coroutine);
 
 				CoroutineStarted?.Invoke(coroutine);
 			}
@@ -427,7 +446,11 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Check if coroutine is still running.
 		/// </summary>
-		public bool IsCoroutineAlive(WiseCoroutine coroutine) => m_Coroutines.Contains(coroutine);
+		public bool IsCoroutineAlive(WiseCoroutine coroutine) =>
+			m_NextFrameCoroutines.Contains(coroutine) ||
+			m_TimedCoroutines.Contains(coroutine) ||
+			m_EndOfFrameCoroutines.Contains(coroutine)
+			;
 
 		/// <summary>
 		/// Stop started coroutine.
@@ -437,9 +460,14 @@ namespace DevLocker.GFrame.Timing
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
-			bool success = m_Coroutines.Remove((WiseCoroutineImpl)coroutine);
+			bool success = m_NextFrameCoroutines.Remove((WiseCoroutineImpl)coroutine)
+				|| m_TimedCoroutines.Remove((WiseCoroutineImpl)coroutine)
+				|| m_EndOfFrameCoroutines.Remove((WiseCoroutineImpl)coroutine)
+				;
 
-			CoroutineStopped?.Invoke(coroutine);
+			if (success) {
+				CoroutineStopped?.Invoke(coroutine);
+			}
 
 			return success;
 		}
@@ -451,16 +479,9 @@ namespace DevLocker.GFrame.Timing
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
-			for (int i = 0; i < m_Coroutines.Count; i++) {
-				WiseCoroutine coroutine = m_Coroutines[i];
-
-				if (coroutine.Source == source) {
-					m_Coroutines.RemoveAt(i);
-					i--;
-
-					CoroutineStopped?.Invoke(coroutine);
-				}
-			}
+			RemoveCoroutinesWhere(m_NextFrameCoroutines, coroutine => coroutine.Source == source);
+			RemoveCoroutinesWhere(m_TimedCoroutines, coroutine => coroutine.Source == source);
+			RemoveCoroutinesWhere(m_EndOfFrameCoroutines, coroutine => coroutine.Source == source);
 		}
 
 		/// <summary>
@@ -470,23 +491,21 @@ namespace DevLocker.GFrame.Timing
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
-			while (m_Coroutines.Count > 0) {
-				WiseCoroutine coroutine = m_Coroutines[0];
-
-				// Keep the order. Just in case.
-				m_Coroutines.RemoveAt(0);
-
-				CoroutineStopped?.Invoke(coroutine);
-			}
+			RemoveCoroutinesWhere(m_NextFrameCoroutines, coroutine => true);
+			RemoveCoroutinesWhere(m_TimedCoroutines, coroutine => true);
+			RemoveCoroutinesWhere(m_EndOfFrameCoroutines, coroutine => true);
 		}
 
 
 		/// <summary>
 		/// Use this to change the order of the coroutines execution, for example, by source type, etc.
+		/// This excludes coroutines that are currently scheduled for specific time.
 		/// </summary>
 		public void SortCoroutines(Comparison<WiseCoroutine> comparison)
 		{
-			m_Coroutines.Sort(comparison);
+			m_NextFrameCoroutines.Sort(comparison);
+			// m_TimedCoroutines.Sort(comparison); // This is always sorted by time.
+			m_EndOfFrameCoroutines.Sort(comparison);
 		}
 
 		/// <summary>
@@ -519,53 +538,34 @@ namespace DevLocker.GFrame.Timing
 
 				TimeElapsedInMilliseconds += deltaTime;
 
-				m_UpdatedCoroutinesCache.Clear();
-				m_UpdatedCoroutinesCache.AddRange(m_Coroutines);
-				m_RemovedCoroutinesCache.Clear();
+				// Use cache for timed entries, so newly scheduled ones resume on the next update.
+				m_TimedCoroutinesCache.Clear();
+				m_TimedCoroutinesCache.AddRange(m_TimedCoroutines);
 
-				// Cache coroutines as the list may change during execution.
-				foreach (WiseCoroutineImpl coroutine in m_UpdatedCoroutinesCache) {
 
-					if (!UpdateCoroutine(coroutine)) {
-						m_RemovedCoroutinesCache.Add(coroutine);
-					}
+				UpdateAndScheduleList(m_NextFrameCoroutines, ScheduleAction.NextFrame);
+
+
+				#region TimedCoroutines
+
+				// Only check the coroutines that time ran out from the sorted list.
+				while (m_TimedCoroutinesCache.Count > 0 && m_TimedCoroutinesCache[0].NextUpdateTimeInMilliseconds <= TimeElapsedInMilliseconds) {
+					var coroutine = m_TimedCoroutinesCache[0];
+					m_TimedCoroutinesCache.RemoveAt(0);
+					m_TimedCoroutines.Remove(coroutine);	// Might not be first element anymore?
+
+					ScheduleAction nextSchedule = UpdateCoroutine(coroutine, ScheduleAction.Timed);
+					ScheduleCoroutine(coroutine, nextSchedule);
 				}
 
-				foreach (WiseCoroutineImpl coroutine in m_RemovedCoroutinesCache) {
-					m_Coroutines.Remove(coroutine);
+				m_TimedCoroutinesCache.Clear();
 
-					CoroutineStopped?.Invoke(coroutine);
-				}
+				#endregion
 
 
-				//
-				// WaitForEndOfFrame
-				//
-				m_UpdatedCoroutinesCache.Clear();
-				m_UpdatedCoroutinesCache.AddRange(m_Coroutines);
-				m_RemovedCoroutinesCache.Clear();
-
-				// Cache coroutines as the list may change during execution.
-				foreach (WiseCoroutineImpl coroutine in m_UpdatedCoroutinesCache) {
-
-					if (!coroutine.WaitForEndOfFrame)
-						continue;
-
-					coroutine.WaitForEndOfFrame = false;
-
-					if (!UpdateCoroutine(coroutine)) {
-						m_RemovedCoroutinesCache.Add(coroutine);
-					}
-				}
-
-				foreach (WiseCoroutineImpl coroutine in m_RemovedCoroutinesCache) {
-					m_Coroutines.Remove(coroutine);
-
-					CoroutineStopped?.Invoke(coroutine);
-				}
+				UpdateAndScheduleList(m_EndOfFrameCoroutines, ScheduleAction.EndOfFrame);
 
 				m_UpdatedCoroutinesCache.Clear();
-				m_RemovedCoroutinesCache.Clear();
 
 				PostUpdate?.Invoke();
 
@@ -577,13 +577,61 @@ namespace DevLocker.GFrame.Timing
 			}
 		}
 
-		private bool UpdateCoroutine(WiseCoroutineImpl coroutine)
+		private void UpdateAndScheduleList(List<WiseCoroutineImpl> coroutines, ScheduleAction schedule)
+		{
+			// Cache coroutines as the list may change during execution.
+			m_UpdatedCoroutinesCache.Clear();
+			m_UpdatedCoroutinesCache.AddRange(coroutines);
+
+			foreach (WiseCoroutineImpl coroutine in m_UpdatedCoroutinesCache) {
+
+				ScheduleAction nextSchedule = UpdateCoroutine(coroutine, schedule);
+				if (nextSchedule == schedule)
+					continue;
+
+				coroutines.Remove(coroutine);
+
+				ScheduleCoroutine(coroutine, nextSchedule);
+			}
+		}
+
+		private void ScheduleCoroutine(WiseCoroutineImpl coroutine, ScheduleAction nextSchedule)
+		{
+			switch (nextSchedule) {
+				case ScheduleAction.NextFrame:
+					m_NextFrameCoroutines.Add(coroutine);
+					break;
+
+				case ScheduleAction.EndOfFrame:
+					m_EndOfFrameCoroutines.Add(coroutine);
+					break;
+
+				case ScheduleAction.Timed:
+					// Insert sorted in ascending order. Work with the first elements later on.
+					int index;
+					for (index = 0; index < m_TimedCoroutines.Count; index++) {
+						if (coroutine.NextUpdateTimeInMilliseconds < m_TimedCoroutines[index].NextUpdateTimeInMilliseconds)
+							break;
+					}
+
+					// Works with index == Count.
+					m_TimedCoroutines.Insert(index, coroutine);
+
+					break;
+
+				case ScheduleAction.Finished:
+					CoroutineStopped?.Invoke(coroutine);
+					break;
+			}
+		}
+
+		private ScheduleAction UpdateCoroutine(WiseCoroutineImpl coroutine, ScheduleAction prevScheduleAction)
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
 			// Check if source was destroyed and kill the coroutine if true.
 			if (coroutine.Source is UnityEngine.Object unitySource && unitySource == null) {
-				return false;
+				return ScheduleAction.Finished;
 			}
 
 #if USE_UNITY
@@ -597,10 +645,10 @@ namespace DevLocker.GFrame.Timing
 
 					switch (coroutine.InactiveBehaviour) {
 						case SourceInactiveBehaviour.StopCoroutine:
-							return false;
+							return ScheduleAction.Finished;
 
 						case SourceInactiveBehaviour.SkipAndResumeWhenActive:
-							return true;
+							return prevScheduleAction;
 
 						default: throw new NotSupportedException($"Not supported behaviour {coroutine.InactiveBehaviour}");
 					}
@@ -609,7 +657,7 @@ namespace DevLocker.GFrame.Timing
 #endif
 
 			if (coroutine.IsPaused)
-				return true;
+				return prevScheduleAction;
 
 
 			while (coroutine.Iterators.Count > 0) {
@@ -624,7 +672,7 @@ namespace DevLocker.GFrame.Timing
 
 					if (coroutine.WiseYieldInstruction != null) {
 						if (coroutine.WiseYieldInstruction.keepWaiting)
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.WiseYieldInstruction = null;
 					}
@@ -632,21 +680,21 @@ namespace DevLocker.GFrame.Timing
 #if USE_UNITY
 					if (coroutine.CustomYieldInstruction != null) {
 						if (coroutine.CustomYieldInstruction.keepWaiting)
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.CustomYieldInstruction = null;
 					}
 
 					if (coroutine.WebRequest != null) {
 						if (!coroutine.WebRequest.isDone)
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.WebRequest = null;
 					}
 
 					if (coroutine.AsyncOperation != null) {
 						if (!coroutine.AsyncOperation.isDone)
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.AsyncOperation = null;
 					}
@@ -654,7 +702,7 @@ namespace DevLocker.GFrame.Timing
 
 					if (coroutine.Task != null) {
 						if (!coroutine.Task.IsCompleted)
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.Task = null;
 					}
@@ -663,13 +711,13 @@ namespace DevLocker.GFrame.Timing
 
 						// NOTE: This works only with coroutines managed by this timing.
 						if (IsCoroutineAlive(coroutine))
-							return true;
+							return ScheduleAction.NextFrame;
 
 						coroutine.WaitedOnCoroutine = null;
 					}
 
 					if (coroutine.NextUpdateTimeInMilliseconds > TimeElapsedInMilliseconds)
-						return true;
+						return ScheduleAction.Timed;
 
 
 					//
@@ -690,7 +738,7 @@ namespace DevLocker.GFrame.Timing
 					object current = iterator.Current;
 
 					if (current == null) {
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					if (current is IEnumerator nestedIterator) {
@@ -703,24 +751,28 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.WiseYieldInstruction = wiseYieldInstruction;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					if (current is WaitForMilliseconds waitForMilliseconds) {
 						coroutine.NextUpdateTimeInMilliseconds = TimeElapsedInMilliseconds + waitForMilliseconds.Milliseconds;
-						return true;
+						return ScheduleAction.Timed;
+					}
+
+					// When Unity support is not available.
+					if (current is WiseTiming.WaitForEndOfFrame) {
+						return ScheduleAction.EndOfFrame;
 					}
 
 #if USE_UNITY
 					if (current is WaitForSeconds waitForSeconds) {
 						var seconds = (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
 						coroutine.NextUpdateTimeInMilliseconds = TimeElapsedInMilliseconds + (long)(seconds * 1000);
-						return true;
+						return ScheduleAction.Timed;
 					}
 
-					if (current is WaitForEndOfFrame) {
-						coroutine.WaitForEndOfFrame = true;
-						return true;
+					if (current is UnityEngine.WaitForEndOfFrame) {
+						return ScheduleAction.EndOfFrame;
 					}
 
 
@@ -730,7 +782,7 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.CustomYieldInstruction = customYieldInstruction;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					if (current is UnityEngine.Networking.UnityWebRequest webRequest) {
@@ -738,7 +790,7 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.WebRequest = webRequest;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					if (current is AsyncOperation asyncOperation) {
@@ -746,7 +798,7 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.AsyncOperation = asyncOperation;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 #endif
 
@@ -755,7 +807,7 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.Task = task;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					if (current is WiseCoroutine anotherCoroutine) {
@@ -765,7 +817,7 @@ namespace DevLocker.GFrame.Timing
 							continue;
 
 						coroutine.WaitedOnCoroutine = anotherCoroutine;
-						return true;
+						return ScheduleAction.NextFrame;
 					}
 
 					throw new NotSupportedException($"Not supported yield instruction: {current}");
@@ -780,8 +832,13 @@ namespace DevLocker.GFrame.Timing
 						;
 
 					switch(action) {
-						case ExceptionHandlingAction.PropagateException: m_Coroutines.Remove(coroutine); CoroutineStopped?.Invoke(coroutine); throw;
-						case ExceptionHandlingAction.CatchAndStopCoroutine: return false;
+						case ExceptionHandlingAction.PropagateException:
+							m_NextFrameCoroutines.Remove(coroutine);
+							m_TimedCoroutines.Remove(coroutine);
+							m_EndOfFrameCoroutines.Remove(coroutine);
+							CoroutineStopped?.Invoke(coroutine);
+							throw;
+						case ExceptionHandlingAction.CatchAndStopCoroutine: return ScheduleAction.Finished;
 						case ExceptionHandlingAction.CatchPopAndResumeCoroutine: coroutine.Iterators.Pop(); continue;
 						default: throw new NotSupportedException($"Not supported type {action}");
 					}
@@ -794,7 +851,20 @@ namespace DevLocker.GFrame.Timing
 			}
 
 
-			return false;
+			return ScheduleAction.Finished;
+		}
+
+		private void RemoveCoroutinesWhere(List<WiseCoroutineImpl> coroutines, Predicate<WiseCoroutineImpl> predicate)
+		{
+			for (int i = coroutines.Count - 1; i >= 0; i--) {
+				WiseCoroutineImpl coroutine = coroutines[i];
+
+				if (predicate(coroutine)) {
+					coroutines.RemoveAt(i);
+
+					CoroutineStopped?.Invoke(coroutine);
+				}
+			}
 		}
 	}
 }

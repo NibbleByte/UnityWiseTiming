@@ -27,6 +27,8 @@ namespace DevLocker.GFrame.Timing
 
 		IEnumerator DoSampleMovement()
 		{
+			float startTime = Time.time;
+
 			yield return null;						// Skip a frame
 
 			yield return Rotate180();				// Wait for this method to finish.
@@ -43,6 +45,8 @@ namespace DevLocker.GFrame.Timing
 
 				transform.position = Vector3.MoveTowards(transform.position, targetPos, step);
 			}
+
+			Debug.Log($"{name} finished for {Time.time - startTime} seconds (simulated time was {(WiseTiming.TimeInMilliseconds - WiseTiming.CurrentCoroutine.DebugInfo.CreatedTimeInMilliseconds) / 1000f} seconds)", this);
 		}
 
 		IEnumerator Rotate180()
