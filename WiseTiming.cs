@@ -461,8 +461,13 @@ namespace DevLocker.GFrame.Timing
 
 			coroutine.DebugInfo = new DebugInfo {
 				CreatedTimeInMilliseconds = TimeElapsedInMilliseconds,
+#if USE_UNITY
 				CreatedUnityTime = UnityEngine.Time.time,
 				CreatedUnityFrame = UnityEngine.Time.frameCount,
+#else
+				CreatedUnityTime = (float) (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalSeconds,
+				CreatedUnityFrame = (int) (DateTime.Now - Process.GetCurrentProcess().StartTime).Ticks,
+#endif
 				StackTrace = DebugInfo_RecordCallstack ? new StackTrace() : null,
 			};
 
@@ -741,12 +746,13 @@ namespace DevLocker.GFrame.Timing
 		{
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
+#if USE_UNITY
+
 			// Check if source was destroyed and kill the coroutine if true.
 			if (coroutine.Source is UnityEngine.Object unitySource && unitySource == null) {
 				return ScheduleAction.Finished;
 			}
 
-#if USE_UNITY
 			if (coroutine.InactiveBehaviour != SourceInactiveBehaviour.KeepExecuting) {
 				bool sourceIsInactive =
 					(coroutine.Source is Behaviour behaviourSource && !behaviourSource.isActiveAndEnabled) ||
