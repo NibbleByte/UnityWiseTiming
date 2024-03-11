@@ -1,3 +1,5 @@
+// MIT License Copyright(c) 2024 Filip Slavov, https://github.com/NibbleByte/UnityWiseTiming
+
 #if USE_UNITY && UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +15,8 @@ namespace DevLocker.GFrame.Timing
 	internal class WiseTiming_SampleTester : MonoBehaviour
 	{
 		public const float Speed = 5f;
+
+		public bool UseFixedUpdate = false;
 
 		public WiseTimingComponent TimingComponent;
 
@@ -39,7 +43,12 @@ namespace DevLocker.GFrame.Timing
 
 			// Move towards the target.
 			while (Vector3.Distance(transform.position, targetPos) > 0.001f) {
-				yield return null;  // yield till next frame.
+
+				if (UseFixedUpdate) {
+					yield return new WaitForFixedUpdate();
+				} else {
+					yield return null;  // yield till next frame.
+				}
 
 				var step = Speed * WiseTiming.DeltaTime;  // DeltaTime is available ONLY inside WiseTiming update.
 
@@ -57,7 +66,11 @@ namespace DevLocker.GFrame.Timing
 				rotateAngle += 50 * Speed * WiseTiming.DeltaTime;  // DeltaTime is available ONLY inside WiseTiming update.
 				transform.localEulerAngles = new Vector3(0f, rotateAngle, 0f);
 
-				yield return null;
+				if (UseFixedUpdate) {
+					yield return new WaitForFixedUpdate();
+				} else {
+					yield return null;
+				}
 			}
 		}
 	}
