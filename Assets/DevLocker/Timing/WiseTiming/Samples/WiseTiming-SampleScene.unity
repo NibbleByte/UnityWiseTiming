@@ -154,6 +154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TimeSpeedMultiplier: 1
   AutomaticUpdateWithUnityTime: 1
+  AutomaticFixedUpdateWithUnityFixedTime: 1
   m_Parent: {fileID: 0}
 --- !u!4 &253691067
 Transform:
@@ -249,9 +250,12 @@ MonoBehaviour:
     Also check the root timing component - changing it''s multiplier
     will affect the child timings as well.
 
+    Note that the bottom cube is using
+    FixedUpdate().
 
-    The WiseTimingComponent is just
-    wrapper of the WiseTiming class - you don''t have to use the component.'
+
+    The WiseTimingComponent is just wrapper of the WiseTiming
+    class - you don''t have to use the component.'
 --- !u!222 &253924686
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -533,7 +537,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 832319927}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5, y: 0, z: 0}
+  m_LocalPosition: {x: -5, y: -2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -552,6 +556,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3bdd0ffd487d554aa977bf5a2bbd7ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  UseFixedUpdate: 1
   TimingComponent: {fileID: 832319933}
 --- !u!114 &832319933
 MonoBehaviour:
@@ -567,6 +572,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TimeSpeedMultiplier: 1
   AutomaticUpdateWithUnityTime: 1
+  AutomaticFixedUpdateWithUnityFixedTime: 1
   m_Parent: {fileID: 253691066}
 --- !u!1 &963194225
 GameObject:
@@ -730,7 +736,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1375348212}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5, y: 3, z: 0}
+  m_LocalPosition: {x: -5, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -749,6 +755,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3bdd0ffd487d554aa977bf5a2bbd7ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  UseFixedUpdate: 0
   TimingComponent: {fileID: 1375348218}
 --- !u!114 &1375348218
 MonoBehaviour:
@@ -764,6 +771,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TimeSpeedMultiplier: 0.5
   AutomaticUpdateWithUnityTime: 1
+  AutomaticFixedUpdateWithUnityFixedTime: 1
   m_Parent: {fileID: 253691066}
 --- !u!1 &1779088987
 GameObject:

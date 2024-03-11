@@ -17,7 +17,7 @@ Unity [coroutines](https://docs.unity3d.com/Manual/Coroutines.html) and [Time.de
 * Can't manually tick the coroutines when you want.
 * Can't iterate or inspect coroutines - there is no API available to do this.
 
-Example usage: imagine that your game has simple logic that doesn't rely on physics (`FixedUpdate()`). If you want to have a replay functionality, you can just record the input and deltaTime each frame - this will be enough information to reproduce the recorded playthrough. If your code uses Unity coroutines with `Time.deltaTime`, playback implementation would be impossible as you can't feed Unity your recorded deltaTime.
+Example usage: imagine that your game has simple logic. If you want to have a replay functionality, you can just record the input and deltaTime each frame - this will be enough information to reproduce the recorded playthrough. If your code uses Unity coroutines with `Time.deltaTime`, playback implementation would be impossible as you can't feed Unity your recorded deltaTime.
 
 This is where **Wise Timing** comes in. Instead of using Unity coroutines and `Time.deltaTime`, you can use [WiseTiming](Assets/DevLocker/Timing/WiseTiming/WiseTiming.cs) instance. This gives you control over the deltaTime value used by the user code and order of execution. You can also have multiple instances for parallel simulation with different speeds (i.e. each character can have different time speed, slowing down some of them).
 
@@ -68,9 +68,9 @@ void Update()
 
 **IMPORTANT:** The static `WiseTiming.DeltaTime` is available only during `Timing.UpdateCoroutines()` call - accessing it outside such call will result in exception. You can have multiple timing instances so it is unclear which deltaTime it should use. If you just want to take the current or last delta time, you can do this from the instance itself: `timing.LastOrCurrentDeltaTime`.
 
-Most used Unity yield instructions are supported: `WaitForSeconds`, `WaitForEndOfFrame`, `CustomYieldInstruction`, `UnityWebRequest`, `AsyncOperation`, `Task` etc. For up-to-date list of supported yield instructions, check the code. `WaitForFixedUpdate` is not supported because it doesn't make sense.
+Most used Unity yield instructions are supported: `WaitForSeconds`, `WaitForEndOfFrame`, `CustomYieldInstruction`, `UnityWebRequest`, `AsyncOperation`, `Task` etc. For up-to-date list of supported yield instructions, check the code. For `WaitForFixedUpdate` to work you need to call `FixedUpdateCoroutines(deltaTime)` in your Unity `FixedUpdate()` method.
 
-If you want to have classic `Update()` method called by WiseTiming, subscribe to the `WiseTiming.PreUpdate` or `WiseTiming.PostUpdate` events. When called you can access the `WiseTiming.DeltaTime`.
+If you want to have the classic `Update()` or `LateUpdate()` method called by WiseTiming, subscribe to the `WiseTiming.PreUpdate` or `WiseTiming.PostUpdate` events. When called you can access the `WiseTiming.DeltaTime`.
 
 ## Debugging and Exception Handling
 There are several ways to debug what coroutines are running at the moment in what state:

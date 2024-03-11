@@ -1,3 +1,5 @@
+// MIT License Copyright(c) 2024 Filip Slavov, https://github.com/NibbleByte/UnityWiseTiming
+
 using System;
 using System.Collections;
 using NUnit.Framework;
@@ -171,6 +173,156 @@ namespace DevLocker.GFrame.Timing.Tests
 			Assert.IsFalse(m_Timing.IsCoroutineAlive(coroutine));
 			Assert.IsFalse(m_Timing.IsCoroutineAlive(coroutine2));
 			Assert.IsFalse(m_Timing.IsCoroutineAlive(coroutine3));
+		}
+
+		#endregion
+
+		#region FixedUpdateCoroutine
+
+		[Test]
+		public void FixedUpdateCoroutine()
+		{
+			var coroutine = m_Timing.StartCoroutine(FixedUpdateCoroutineCrt(), this);
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
+			Assert.AreEqual(1, m_Timing.UpdatesCount);
+			Assert.AreEqual(0f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(0, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(1, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);  // Should not progress coroutines - scheduled for fixed.
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(0f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(0, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(1, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Fixed Update
+			//
+			m_Timing.FixedUpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(1f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(1, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(2, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Fixed Update
+			//
+			m_Timing.FixedUpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(2f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(2, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(3, m_Progress);
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Fixed Update
+			//
+			m_Timing.FixedUpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(3f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(3, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(3, m_Progress); // Waiting for normal update - skip.
+			Assert.IsTrue(m_Timing.IsCoroutineAlive(coroutine));
+
+			//
+			// Update
+			//
+			m_Timing.UpdateCoroutines(1f);
+
+			Assert.That(() => WiseTiming.CurrentTiming, Throws.TypeOf<InvalidOperationException>());
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
+			Assert.AreEqual(3, m_Timing.UpdatesCount);
+			Assert.AreEqual(3f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(3, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(0, m_Timing.CoroutinesCount);
+
+			Assert.AreEqual(4, m_Progress);
+			Assert.IsFalse(m_Timing.IsCoroutineAlive(coroutine));
+		}
+
+		private IEnumerator FixedUpdateCoroutineCrt()
+		{
+			Assert.AreEqual(0, m_Timing.UpdatesCount);
+			Assert.AreEqual(1f, m_Timing.TimeElapsed);
+			Assert.AreEqual(0, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(0f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			m_Progress++;
+
+			yield return new WaitForFixedUpdate();
+
+			Assert.AreEqual(2, m_Timing.UpdatesCount);  // Normal update won't proceed - skipped.
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(0, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(1f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			Assert.AreNotEqual(m_Timing, WiseTiming.CurrentTiming);
+			Assert.IsNotNull(WiseTiming.CurrentCoroutine);
+
+			m_Progress++;
+
+			yield return new WaitForFixedUpdate();
+
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(2f, m_Timing.TimeElapsed);
+			Assert.AreEqual(1, m_Timing.FixedUpdatesCount);
+			Assert.AreEqual(2f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			Assert.AreNotEqual(m_Timing, WiseTiming.CurrentTiming);
+			Assert.IsNotNull(WiseTiming.CurrentCoroutine);
+
+			m_Progress++;
+
+			yield return null;
+
+			Assert.AreEqual(2, m_Timing.UpdatesCount);
+			Assert.AreEqual(3f, m_Timing.TimeElapsed);
+			Assert.AreEqual(3, m_Timing.FixedUpdatesCount); // Fixed updates also skipped.
+			Assert.AreEqual(3f, m_Timing.FixedTimeElapsed);
+			Assert.AreEqual(1f, WiseTiming.DeltaTime);
+
+			Assert.AreEqual(m_Timing, WiseTiming.CurrentTiming);
+			Assert.IsNotNull(WiseTiming.CurrentCoroutine);
+
+			m_Progress++;
 		}
 
 		#endregion

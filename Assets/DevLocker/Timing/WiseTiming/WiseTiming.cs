@@ -1,3 +1,5 @@
+// MIT License Copyright(c) 2024 Filip Slavov, https://github.com/NibbleByte/UnityWiseTiming
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -182,6 +184,15 @@ namespace DevLocker.GFrame.Timing
 			// Keep empty. Used as marker.
 		}
 
+		/// <summary>
+		/// In case you're not using Unity, but still want the fixed update support,
+		/// use this class instead.
+		/// </summary>
+		public sealed class WaitForFixedUpdate
+		{
+			// Keep empty. Used as marker.
+		}
+
 		#endregion
 
 		/// <summary>
@@ -267,12 +278,16 @@ namespace DevLocker.GFrame.Timing
 		/// <summary>
 		/// Currently active coroutines.
 		/// </summary>
-		public IEnumerable<WiseCoroutine> Coroutines => m_NextFrameCoroutines.Concat(m_TimedCoroutines).Concat(m_EndOfFrameCoroutines);
+		public IEnumerable<WiseCoroutine> Coroutines => m_NextFrameCoroutines
+			.Concat(m_FixedUpdateCoroutines)
+			.Concat(m_TimedCoroutines)
+			.Concat(m_EndOfFrameCoroutines)
+			;
 
 		/// <summary>
 		/// Alive coroutines count, that will be processed the next update.
 		/// </summary>
-		public int CoroutinesCount => m_NextFrameCoroutines.Count + m_TimedCoroutines.Count + m_EndOfFrameCoroutines.Count;
+		public int CoroutinesCount => m_NextFrameCoroutines.Count + m_FixedUpdateCoroutines.Count + m_TimedCoroutines.Count + m_EndOfFrameCoroutines.Count;
 
 		/// <summary>
 		/// Time in seconds passed with updates since this instance was created.
@@ -283,6 +298,16 @@ namespace DevLocker.GFrame.Timing
 		/// Time in milliseconds passed with updates since this instance was created.
 		/// </summary>
 		public long TimeElapsedInMilliseconds { get; private set; }
+
+		/// <summary>
+		/// Time in seconds passed with fixed updates since this instance was created.
+		/// </summary>
+		public float FixedTimeElapsed => m_FixedTiming?.TimeElapsed ?? 0f;
+
+		/// <summary>
+		/// Time in milliseconds passed with fixed updates since this instance was created.
+		/// </summary>
+		public long FixedTimeElapsedInMilliseconds => m_FixedTiming?.TimeElapsedInMilliseconds ?? 0;
 
 		/// <summary>
 		/// DeltaTime in seconds from the last <see cref="UpdateCoroutines(float)"/> or the currently happening one.
@@ -298,6 +323,11 @@ namespace DevLocker.GFrame.Timing
 		/// How many times update executed.
 		/// </summary>
 		public int UpdatesCount { get; private set; }
+
+		/// <summary>
+		/// How many times fixed update executed.
+		/// </summary>
+		public int FixedUpdatesCount => m_FixedTiming?.UpdatesCount ?? 0;
 
 		/// <summary>
 		/// If set to true, coroutines will record the initial callstack they were created from.
@@ -331,6 +361,16 @@ namespace DevLocker.GFrame.Timing
 		/// </summary>
 		public event UpdateEventHandler PostUpdate;
 
+		/// <summary>
+		/// Fixed update is about to happen. Can get update delta time with <see cref="CurrentTiming"/>
+		/// </summary>
+		public event UpdateEventHandler PreFixedUpdate;
+
+		/// <summary>
+		/// Fixed update just finished. Can get update delta time with <see cref="CurrentTiming"/>
+		/// </summary>
+		public event UpdateEventHandler PostFixedUpdate;
+
 
 
 		#region Implementation Details
@@ -338,6 +378,7 @@ namespace DevLocker.GFrame.Timing
 		private enum ScheduleAction
 		{
 			NextFrame,
+			FixedUpdate,
 			Timed,
 			EndOfFrame,
 
@@ -379,6 +420,7 @@ namespace DevLocker.GFrame.Timing
 		}
 
 		private List<WiseCoroutineImpl> m_NextFrameCoroutines = new List<WiseCoroutineImpl>();
+		private List<WiseCoroutineImpl> m_FixedUpdateCoroutines = new List<WiseCoroutineImpl>();
 		private List<WiseCoroutineImpl> m_TimedCoroutines = new List<WiseCoroutineImpl>();
 		private List<WiseCoroutineImpl> m_EndOfFrameCoroutines = new List<WiseCoroutineImpl>();
 
@@ -391,12 +433,14 @@ namespace DevLocker.GFrame.Timing
 
 		private static WiseTiming m_CurrentTiming;
 
+		// Used for fixed updates. This way we can save up on some code.
+		private WiseTiming m_FixedTiming = null;
+
 #if USE_UNITY
 		private System.Reflection.FieldInfo m_WaitForSeconds_Seconds_FieldInfo = typeof(WaitForSeconds).GetField("m_Seconds", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 #endif
 
 		#endregion
-
 
 		/// <summary>
 		/// Start a coroutine. It will be updated on <see cref="UpdateCoroutines(long)"/>.
@@ -448,6 +492,7 @@ namespace DevLocker.GFrame.Timing
 		/// </summary>
 		public bool IsCoroutineAlive(WiseCoroutine coroutine) =>
 			m_NextFrameCoroutines.Contains(coroutine) ||
+			m_FixedUpdateCoroutines.Contains(coroutine) ||
 			m_TimedCoroutines.Contains(coroutine) ||
 			m_EndOfFrameCoroutines.Contains(coroutine)
 			;
@@ -461,6 +506,7 @@ namespace DevLocker.GFrame.Timing
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
 			bool success = m_NextFrameCoroutines.Remove((WiseCoroutineImpl)coroutine)
+				|| m_FixedUpdateCoroutines.Remove((WiseCoroutineImpl)coroutine)
 				|| m_TimedCoroutines.Remove((WiseCoroutineImpl)coroutine)
 				|| m_EndOfFrameCoroutines.Remove((WiseCoroutineImpl)coroutine)
 				;
@@ -480,6 +526,7 @@ namespace DevLocker.GFrame.Timing
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
 			RemoveCoroutinesWhere(m_NextFrameCoroutines, coroutine => coroutine.Source == source);
+			RemoveCoroutinesWhere(m_FixedUpdateCoroutines, coroutine => coroutine.Source == source);
 			RemoveCoroutinesWhere(m_TimedCoroutines, coroutine => coroutine.Source == source);
 			RemoveCoroutinesWhere(m_EndOfFrameCoroutines, coroutine => coroutine.Source == source);
 		}
@@ -492,6 +539,7 @@ namespace DevLocker.GFrame.Timing
 			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
 
 			RemoveCoroutinesWhere(m_NextFrameCoroutines, coroutine => true);
+			RemoveCoroutinesWhere(m_FixedUpdateCoroutines, coroutine => true);
 			RemoveCoroutinesWhere(m_TimedCoroutines, coroutine => true);
 			RemoveCoroutinesWhere(m_EndOfFrameCoroutines, coroutine => true);
 		}
@@ -504,8 +552,68 @@ namespace DevLocker.GFrame.Timing
 		public void SortCoroutines(Comparison<WiseCoroutine> comparison)
 		{
 			m_NextFrameCoroutines.Sort(comparison);
+			m_FixedUpdateCoroutines.Sort(comparison);
 			// m_TimedCoroutines.Sort(comparison); // This is always sorted by time.
 			m_EndOfFrameCoroutines.Sort(comparison);
+		}
+
+		/// <summary>
+		/// Call in FixedUpdate()
+		/// Advance all coroutines scheduled for fixed update with given delta time in seconds.
+		/// All coroutines should use <see cref="DeltaTime"/> instead of Unity's version.
+		/// </summary>
+		public void FixedUpdateCoroutines(float deltaTime)
+		{
+			FixedUpdateCoroutines((long) (deltaTime * 1000));
+		}
+
+		/// <summary>
+		/// Call in FixedUpdate()
+		/// Advance all coroutines scheduled for fixed update with given delta time in milliseconds.
+		/// All coroutines should use <see cref="DeltaTime"/> instead of Unity's version.
+		/// </summary>
+		public void FixedUpdateCoroutines(long deltaTime)
+		{
+			// NOTE: to debug this class, remove the "[DebuggerNonUserCode]" attribute above, or disable "Just My Code" feature of Visual Studio.
+
+			if (m_CurrentTiming != null)
+				throw new InvalidOperationException($"Calling {nameof(WiseTiming)} fixed update while another one is currently running is not allowed.");
+
+			if (m_FixedTiming == null) {
+				m_FixedTiming = new WiseTiming();
+
+				// Refer to the same lists so scheduling & public properties work automatically.
+				m_FixedTiming.m_NextFrameCoroutines = m_NextFrameCoroutines;
+				m_FixedTiming.m_FixedUpdateCoroutines = m_FixedUpdateCoroutines;
+				m_FixedTiming.m_TimedCoroutines = m_TimedCoroutines;
+				m_FixedTiming.m_EndOfFrameCoroutines = m_EndOfFrameCoroutines;
+			}
+
+			try {
+
+				// Refer to the internal timing, as it stores it's own times.
+				// User code will get delta time from it.
+				m_CurrentTiming = m_FixedTiming;
+
+				m_FixedTiming.LastOrCurrentDeltaTimeInMilliseconds = m_FixedTiming.m_CurrentDeltaTime = deltaTime;
+
+				PreFixedUpdate?.Invoke();
+
+				m_FixedTiming.TimeElapsedInMilliseconds += deltaTime;
+
+				// Keep in mind that the fixed timing refers to this one coroutines lists - scheduling back and forth should work.
+				m_FixedTiming.UpdateAndScheduleList(m_FixedTiming.m_FixedUpdateCoroutines, ScheduleAction.FixedUpdate);
+
+				m_FixedTiming.m_UpdatedCoroutinesCache.Clear();
+
+				PostFixedUpdate?.Invoke();
+
+			} finally {
+
+				m_FixedTiming.UpdatesCount++;
+
+				m_CurrentTiming = null;
+			}
 		}
 
 		/// <summary>
@@ -600,6 +708,10 @@ namespace DevLocker.GFrame.Timing
 			switch (nextSchedule) {
 				case ScheduleAction.NextFrame:
 					m_NextFrameCoroutines.Add(coroutine);
+					break;
+
+				case ScheduleAction.FixedUpdate:
+					m_FixedUpdateCoroutines.Add(coroutine);
 					break;
 
 				case ScheduleAction.EndOfFrame:
@@ -764,11 +876,20 @@ namespace DevLocker.GFrame.Timing
 						return ScheduleAction.EndOfFrame;
 					}
 
+					// When Unity support is not available.
+					if (current is WiseTiming.WaitForFixedUpdate) {
+						return ScheduleAction.FixedUpdate;
+					}
+
 #if USE_UNITY
 					if (current is WaitForSeconds waitForSeconds) {
 						var seconds = (float)m_WaitForSeconds_Seconds_FieldInfo.GetValue(waitForSeconds);
 						coroutine.NextUpdateTimeInMilliseconds = TimeElapsedInMilliseconds + (long)(seconds * 1000);
 						return ScheduleAction.Timed;
+					}
+
+					if (current is UnityEngine.WaitForFixedUpdate) {
+						return ScheduleAction.FixedUpdate;
 					}
 
 					if (current is UnityEngine.WaitForEndOfFrame) {
@@ -834,6 +955,7 @@ namespace DevLocker.GFrame.Timing
 					switch(action) {
 						case ExceptionHandlingAction.PropagateException:
 							m_NextFrameCoroutines.Remove(coroutine);
+							m_FixedUpdateCoroutines.Remove(coroutine);
 							m_TimedCoroutines.Remove(coroutine);
 							m_EndOfFrameCoroutines.Remove(coroutine);
 							CoroutineStopped?.Invoke(coroutine);

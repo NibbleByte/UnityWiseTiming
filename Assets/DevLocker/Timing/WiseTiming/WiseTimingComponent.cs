@@ -1,3 +1,5 @@
+// MIT License Copyright(c) 2024 Filip Slavov, https://github.com/NibbleByte/UnityWiseTiming
+
 #if USE_UNITY
 using System;
 using System.Collections;
@@ -24,6 +26,11 @@ namespace DevLocker.GFrame.Timing
 			"Turn off if you want to call it yourself with custom deltaTime.\n" +
 			"This behaviour is overriden when the component has a parent that controls it.")]
 		public bool AutomaticUpdateWithUnityTime = true;
+
+		[Tooltip("Should it automatically progress time using Unity Time.fixedDeltaTime in the well-known FixedUpdate() method.\n" +
+			"Turn off if you want to call it yourself with custom fixedDeltaTime.\n" +
+			"This behaviour is overriden when the component has a parent that controls it.")]
+		public bool AutomaticFixedUpdateWithUnityFixedTime = false;
 
 		/// <summary>
 		/// Child components controlled by this one.
@@ -96,6 +103,13 @@ namespace DevLocker.GFrame.Timing
 			}
 		}
 
+		void FixedUpdate()
+		{
+			if (AutomaticFixedUpdateWithUnityFixedTime && Parent == null) {
+				FixedUpdateTime(Time.fixedDeltaTime);
+			}
+		}
+
 
 		public void UpdateTime(float deltaTime)
 		{
@@ -113,6 +127,27 @@ namespace DevLocker.GFrame.Timing
 
 				if (child.isActiveAndEnabled) {
 					child.UpdateTime(deltaTime * TimeSpeedMultiplier);
+				}
+
+			}
+		}
+
+		public void FixedUpdateTime(float deltaTime)
+		{
+			Timing.FixedUpdateCoroutines(deltaTime * TimeSpeedMultiplier);
+
+			foreach (WiseTimingComponent child in m_ChildComponents.ToList()) {
+
+				// I may get destroyed during execution?
+				if (this == null)
+					return;
+
+				// May get destroyed during execution.
+				if (child == null)
+					continue;
+
+				if (child.isActiveAndEnabled) {
+					child.FixedUpdateTime(deltaTime * TimeSpeedMultiplier);
 				}
 
 			}
