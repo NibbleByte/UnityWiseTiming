@@ -482,6 +482,15 @@ namespace DevLocker.GFrame.Timing
 					CoroutineStarted?.Invoke(coroutine);
 				}
 
+			} else if (m_CurrentTiming == m_FixedTiming && m_FixedTiming != null) {
+
+				ScheduleAction nextSchedule = UpdateCoroutine(coroutine, ScheduleAction.FixedUpdate);
+
+				if (nextSchedule != ScheduleAction.Finished) {
+					ScheduleCoroutine(coroutine, nextSchedule);
+					CoroutineStarted?.Invoke(coroutine);
+				}
+
 			} else {
 				m_NextFrameCoroutines.Add(coroutine);
 
